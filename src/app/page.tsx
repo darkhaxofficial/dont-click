@@ -247,7 +247,7 @@ export default function Home() {
         }
 
         // Stage 2: Toasts (from 30s)
-        if (elapsed > 30000 && now - lastToast > (15000 + Math.random() * 15000)) {
+        if (elapsed > 30000 && now - lastToast > (20000 + Math.random() * 20000)) {
             triggerFakeToast();
             lastToast = now;
         }
@@ -392,68 +392,72 @@ export default function Home() {
 
   return (
     <main style={{ cursor: cursorStyle }} className={`flex min-h-screen flex-col items-center justify-between p-4 sm:p-8 md:p-12 bg-background text-foreground transition-colors duration-100 ${showFlash ? 'bg-accent' : ''}`}>
-      <div className="flex-grow flex items-center justify-center w-full">
-        {isGameOver ? (() => {
-          const minutes = Math.floor(survivalTime / 60000);
-          const seconds = Math.floor((survivalTime % 60000) / 1000);
-          const milliseconds = survivalTime % 1000;
-          return (
-              <div className="text-center animate-fade-in">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-headline font-black mb-4">YOU CLICKED</h1>
-              <p className="text-lg sm:text-xl font-body">You survived for</p>
-              <div className="flex items-baseline justify-center my-4 text-4xl sm:text-6xl md:text-7xl font-headline font-black">
-                  {minutes > 0 && (
-                  <>
-                      <span>{minutes}</span>
-                      <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">m</span>
-                  </>
+      <div className="flex-grow flex flex-col items-center justify-center w-full">
+        <div className="flex-grow flex items-center justify-center w-full">
+          {isGameOver ? (() => {
+            const minutes = Math.floor(survivalTime / 60000);
+            const seconds = Math.floor((survivalTime % 60000) / 1000);
+            const milliseconds = survivalTime % 1000;
+            return (
+                <div className="text-center animate-fade-in">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-headline font-black mb-4">YOU CLICKED</h1>
+                <p className="text-lg sm:text-xl font-body">You survived for</p>
+                <div className="flex items-baseline justify-center my-4 text-4xl sm:text-6xl md:text-7xl font-headline font-black">
+                    {minutes > 0 && (
+                    <>
+                        <span>{minutes}</span>
+                        <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">m</span>
+                    </>
+                    )}
+                    <span>{minutes > 0 ? String(seconds).padStart(2, '0') : seconds}</span>
+                    <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">s</span>
+                    <span>{String(milliseconds).padStart(3, '0')}</span>
+                    <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">ms</span>
+                </div>
+                <Button onClick={() => window.location.reload()} className="mt-8" size="lg">
+                    Try Again
+                </Button>
+
+                {userProfileLoaded && !userDisplayName && (
+                    <form onSubmit={handleNameSubmit} className="mt-6 flex w-full max-w-xs mx-auto items-center space-x-2">
+                      <Input 
+                        type="text" 
+                        placeholder="Enter name for leaderboard"
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        disabled={isSubmittingName}
+                        maxLength={25}
+                      />
+                      <Button type="submit" disabled={isSubmittingName || !playerName.trim()}>
+                        {isSubmittingName ? 'Saving...' : 'Add Name'}
+                      </Button>
+                    </form>
                   )}
-                  <span>{minutes > 0 ? String(seconds).padStart(2, '0') : seconds}</span>
-                  <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">s</span>
-                  <span>{String(milliseconds).padStart(3, '0')}</span>
-                  <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">ms</span>
-              </div>
-              <Button onClick={() => window.location.reload()} className="mt-8" size="lg">
-                  Try Again
-              </Button>
 
-              {userProfileLoaded && !userDisplayName && (
-                  <form onSubmit={handleNameSubmit} className="mt-6 flex w-full max-w-xs mx-auto items-center space-x-2">
-                    <Input 
-                      type="text" 
-                      placeholder="Enter name for leaderboard"
-                      value={playerName}
-                      onChange={(e) => setPlayerName(e.target.value)}
-                      disabled={isSubmittingName}
-                      maxLength={25}
-                    />
-                    <Button type="submit" disabled={isSubmittingName || !playerName.trim()}>
-                      {isSubmittingName ? 'Saving...' : 'Add Name'}
-                    </Button>
-                  </form>
-                )}
-
+                </div>
+            );
+          })() : (
+            <div className="relative flex flex-col items-center justify-center text-center">
+              {startTime === null ? (
+                <h1 className="text-5xl sm:text-7xl md:text-9xl font-headline font-black tracking-widest animate-pulse">
+                    LOADING...
+                </h1>
+              ) : (
+                <h1 style={mainTextStyle} className="text-5xl sm:text-7xl md:text-9xl font-headline font-black tracking-tight md:tracking-widest">
+                  {mainText}
+                </h1>
+              )}
+              <div className="absolute top-full mt-8 h-16 w-screen max-w-lg px-4">
+                <p className={`text-xl md:text-2xl font-body text-muted-foreground transition-opacity duration-1000 ${isMessageVisible ? 'opacity-100' : 'opacity-0'}`}>
+                  {currentMessage?.text}
+                </p>
               </div>
-          );
-        })() : (
-          <div className="relative flex flex-col items-center justify-center text-center">
-             {startTime === null ? (
-               <h1 className="text-5xl sm:text-7xl md:text-9xl font-headline font-black tracking-widest animate-pulse">
-                  LOADING...
-               </h1>
-             ) : (
-              <h1 style={mainTextStyle} className="text-5xl sm:text-7xl md:text-9xl font-headline font-black tracking-tight md:tracking-widest">
-                {mainText}
-              </h1>
-             )}
-            <div className="absolute top-full mt-8 h-16 w-screen max-w-lg px-4">
-              <p className={`text-xl md:text-2xl font-body text-muted-foreground transition-opacity duration-1000 ${isMessageVisible ? 'opacity-100' : 'opacity-0'}`}>
-                {currentMessage?.text}
-              </p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+        {isGameOver && <Leaderboard />}
       </div>
+
 
       {/* Fake Alert Overlay */}
       {fakeAlert?.active && (
@@ -462,7 +466,19 @@ export default function Home() {
           </div>
       )}
 
-      {isGameOver && <Leaderboard />}
+      <footer className="text-center text-muted-foreground text-sm py-4 w-full">
+        <p className="mb-1">Made with ❤️ by DarkHax</p>
+        <a 
+          href="https://www.buymeacoffee.com/darkhax" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="underline hover:text-foreground transition-colors"
+        >
+          Buy me a coffee
+        </a>
+      </footer>
     </main>
   );
 }
+
+    
