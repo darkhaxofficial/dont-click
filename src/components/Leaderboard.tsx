@@ -11,6 +11,7 @@ type UserProfile = {
   id: string;
   personalBest: number;
   totalAttempts: number;
+  displayName?: string;
 };
 
 function formatTime(time: number) {
@@ -73,7 +74,7 @@ export function Leaderboard() {
                 <TableRow>
                     <TableHead className="w-[50px] text-center">Rank</TableHead>
                     <TableHead>Time</TableHead>
-                    <TableHead className="text-right">Player ID</TableHead>
+                    <TableHead className="text-right">Player</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -81,7 +82,7 @@ export function Leaderboard() {
                     <TableRow key={user.id}>
                     <TableCell className="font-medium text-center">{index + 1}</TableCell>
                     <TableCell className="font-mono">{formatTime(user.personalBest)}</TableCell>
-                    <TableCell className="text-right font-mono text-xs text-muted-foreground">{user.id ? `...${user.id.slice(-6)}` : '...'}</TableCell>
+                    <TableCell className="text-right font-mono">{user.displayName || (user.id ? `...${user.id.slice(-6)}` : '...')}</TableCell>
                     </TableRow>
                 ))}
                 {(!leaderboard || leaderboard.length === 0) && !loading && (

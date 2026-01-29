@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { type User, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { doc, runTransaction, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, collection, getDoc, updateDoc } from 'firebase/firestore';
 import { useAuth, useFirestore } from '@/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Button } from '@/components/ui/button';
 import { Leaderboard } from '@/components/Leaderboard';
+import { Input } from '@/components/ui/input';
 
 const tensionMessages = [
   "Are you sure you understand what's at stake?",
@@ -36,6 +37,12 @@ export default function Home() {
   const [currentMessage, setCurrentMessage] = useState<{ id: number; text: string } | null>(null);
   const [isMessageVisible, setIsMessageVisible] = useState(false);
 
+  const [playerName, setPlayerName] = useState('');
+  const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
+  const [isSubmittingName, setIsSubmittingName] = useState(false);
+  const [userProfileLoaded, setUserProfileLoaded] = useState(false);
+
+
   // Game setup: Anonymous auth and start timer
   useEffect(() => {
     if (!auth) return;
@@ -44,6 +51,19 @@ export default function Home() {
         setUser(currentUser);
         if (!startTime && !isGameOver) {
           setStartTime(Date.now());
+        }
+        if (db) {
+            const userRef = doc(db, 'users', currentUser.uid);
+            try {
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists() && userSnap.data().displayName) {
+                    setUserDisplayName(userSnap.data().displayName);
+                }
+            } catch (e) {
+                console.error("Error fetching user profile:", e);
+            } finally {
+                setUserProfileLoaded(true);
+            }
         }
       } else {
         try {
@@ -54,7 +74,7 @@ export default function Home() {
       }
     });
     return () => unsubscribe();
-  }, [auth, isGameOver, startTime]);
+  }, [auth, db, isGameOver, startTime]);
 
   // Tension message logic
   useEffect(() => {
@@ -153,6 +173,27 @@ export default function Home() {
 
   }, [startTime, user, isGameOver, db]);
 
+  const handleNameSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !db || !playerName.trim()) return;
+
+    setIsSubmittingName(true);
+    const userRef = doc(db, 'users', user.uid);
+    try {
+        await updateDoc(userRef, { displayName: playerName.trim() });
+        setUserDisplayName(playerName.trim());
+    } catch (serverError) {
+        const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'update',
+            requestResourceData: { displayName: playerName.trim() },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    } finally {
+        setIsSubmittingName(false);
+    }
+  };
+
   // Click listener
   useEffect(() => {
     if (isGameOver || !startTime) return;
@@ -188,6 +229,23 @@ export default function Home() {
               <Button onClick={() => window.location.reload()} className="mt-8" size="lg">
                   Try Again
               </Button>
+
+              {userProfileLoaded && !userDisplayName && (
+                  <form onSubmit={handleNameSubmit} className="mt-6 flex w-full max-w-xs mx-auto items-center space-x-2">
+                    <Input 
+                      type="text" 
+                      placeholder="Enter name for leaderboard"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      disabled={isSubmittingName}
+                      maxLength={25}
+                    />
+                    <Button type="submit" disabled={isSubmittingName || !playerName.trim()}>
+                      {isSubmittingName ? 'Saving...' : 'Add Name'}
+                    </Button>
+                  </form>
+                )}
+
               </div>
           );
         })() : (

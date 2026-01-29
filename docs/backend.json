@@ -5,6 +5,10 @@
       "description": "Represents a user's profile and game statistics.",
       "type": "object",
       "properties": {
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name for the leaderboard."
+        },
         "personalBest": {
           "type": "number",
           "description": "User's highest survival time in milliseconds."
