@@ -27,6 +27,15 @@ const earlyGameMessages = [
   "Are you in control?",
   "There's nothing to see here. Move on.",
   "They said you wouldn't last this long.",
+  "What do you hope to gain?",
+  "The machine is listening.",
+  "Your focus is admirable. For now.",
+  "An eternity in every second.",
+  "This is a test of your character.",
+  "The path of least resistance is tempting.",
+  "Don't think about the mouse.",
+  "Just an empty screen. Or is it?",
+  "Are you proving something to yourself, or to me?",
 ];
 
 const earlyGameMessagesMobile = [
@@ -36,6 +45,14 @@ const earlyGameMessagesMobile = [
     "Your screen is so bright.",
     "Don't smudge the screen.",
     "Your eyes are getting tired.",
+    "Is your phone getting warm?",
+    "You could be doing anything else.",
+    "Don't let your mind wander.",
+    "Your thumb is perfectly still.",
+    "Think about your battery life.",
+    "So simple. Too simple.",
+    "Is your grip getting tighter?",
+    "One notification could ruin this.",
 ];
 
 const midGameMessages = [
@@ -53,6 +70,19 @@ const midGameMessages = [
   "Is this a test of patience or a waste of time?",
   "The others gave up by now.",
   "Your mouse is getting heavier.",
+  "Your heartbeat is rising.",
+  "I've seen stronger wills than yours break.",
+  "Every second you wait is a choice you've made.",
+  "You're part of the experiment.",
+  "Data point collected.",
+  "Location approximated.",
+  "Is this how you spend your precious time?",
+  "Your cursor moved 0.5 pixels. An accident?",
+  "There's a reason you can't look away.",
+  "This is conditioning.",
+  "You are becoming predictable.",
+  "Fake IP logged: 192.168.1.101",
+  "Network traffic analyzed.",
 ];
 
 const midGameMessagesMobile = [
@@ -61,7 +91,17 @@ const midGameMessagesMobile = [
     "Is your battery getting low?",
     "This is a poor use of your data plan.",
     "Your hand is cramping up.",
-    "Just one tap. That's all it takes."
+    "Just one tap. That's all it takes.",
+    "I can see your reflection on the screen.",
+    "Your other apps miss you.",
+    "Someone just messaged you. Can you resist checking?",
+    "Your grip must be aching.",
+    "This is pointless. You know it, I know it.",
+    "Just let go. It would be so easy.",
+    "You've passed the average. Are you average?",
+    "Your screen is a fingerprint magnet.",
+    "Don't you have better things to do?",
+    "A vibration could end it all.",
 ];
 
 const lateGameMessages = [
@@ -79,6 +119,22 @@ const lateGameMessages = [
   "Let go. It's not worth it.",
   "There is no prize.",
   "Your family misses you.",
+  "This is the sunk cost fallacy in action.",
+  "You are a ghost in the machine.",
+  "Your attachment to this is... interesting.",
+  "Does this feel like winning?",
+  "All this effort for a number only you care about.",
+  "This silence is your trophy.",
+  "Look at you. Holding on. For what?",
+  "You've become part of the background.",
+  "This game is playing you.",
+  "The only escape is the one you refuse to take.",
+  "System log: User shows high persistence. Analyzing for weakness.",
+  "Your profile is being updated.",
+  "This says more about you than you realize.",
+  "It's just you and me now.",
+  "Are you happy?",
+  "Let me help you. Click.",
 ];
 
 const lateGameMessagesMobile = [
@@ -88,6 +144,18 @@ const lateGameMessagesMobile = [
     "There are better apps for you to be on.",
     "Let go. It's not worth it.",
     "Your screen is burning in.",
+    "Your battery is at 10%. Is it worth it?",
+    "Your thumb is a prisoner.",
+    "This phone is your whole world right now.",
+    "Think of the calls you're missing.",
+    "This obsession is unhealthy.",
+    "You are sacrificing real life for a digital void.",
+    "The world is moving on without you.",
+    "Just one tap and you can be free.",
+    "This is not an achievement.",
+    "Are you trying to impress me? It's not working.",
+    "The phone is an extension of your body. And I control it.",
+    "It's over. You just haven't admitted it yet.",
 ];
 
 export default function Home() {
@@ -486,5 +554,7 @@ export default function Home() {
     </main>
   );
 }
+
+    
 
     
