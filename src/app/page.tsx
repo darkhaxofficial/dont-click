@@ -199,7 +199,6 @@ export default function Home() {
     
     const fakeAlerts = [
       { title: "System Warning", message: "Unstable connection detected. Click OK to re-sync.", button: "OK" },
-      { title: "Achievement Unlocked!", message: "Patience is a virtue. Claim your reward.", button: "Claim" },
       { title: "Memory Warning", message: "Browser memory is low. Please close unused tabs.", button: "Dismiss" },
     ];
     const triggerFakeAlert = () => {
@@ -480,5 +479,3 @@ export default function Home() {
     </main>
   );
 }
-
-    
