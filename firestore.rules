@@ -1,0 +1,25 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can only read and write their own profile.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Any authenticated user can read and write to global stats.
+    // The game logic handles the updates safely within a transaction.
+    match /globalStats/{statId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Users can create a new session document for themselves.
+    match /sessions/{sessionId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Reads, updates, and deletes are disallowed for now.
+      allow read, update, delete: if false;
+    }
+  }
+}
