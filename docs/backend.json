@@ -1,0 +1,102 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Represents a user's profile and game statistics.",
+      "type": "object",
+      "properties": {
+        "personalBest": {
+          "type": "number",
+          "description": "User's highest survival time in milliseconds."
+        },
+        "totalAttempts": {
+          "type": "number",
+          "description": "Total number of games the user has played."
+        },
+        "lastPlayed": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the user last played."
+        }
+      },
+      "required": ["personalBest", "totalAttempts"]
+    },
+    "GlobalStats": {
+      "title": "Global Stats",
+      "description": "Global game statistics.",
+      "type": "object",
+      "properties": {
+        "totalPlays": {
+          "type": "number",
+          "description": "Total number of games played by all users."
+        },
+        "dailyBest": {
+          "type": "number",
+          "description": "Highest survival time for the current day in milliseconds."
+        },
+        "dailyBestDate": {
+          "type": "string",
+          "description": "The date for the current daily best (YYYY-MM-DD)."
+        },
+        "lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the global stats were last updated."
+        }
+      },
+      "required": ["totalPlays", "dailyBest", "dailyBestDate"]
+    },
+    "GameSession": {
+      "title": "Game Session",
+      "description": "Represents a single game session.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who played the session."
+        },
+        "startTime": {
+          "type": "number",
+          "description": "The start time of the session (Unix timestamp)."
+        },
+        "endTime": {
+          "type": "number",
+          "description": "The end time of the session (Unix timestamp)."
+        },
+        "duration": {
+          "type": "number",
+          "description": "The duration of the session in milliseconds."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the session was logged."
+        }
+      },
+      "required": ["userId", "duration", "createdAt"]
+    }
+  },
+  "auth": {
+    "providers": ["anonymous"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Stores user-specific data and stats."
+    },
+    "/globalStats/{statId}": {
+      "schema": {
+        "$ref": "#/entities/GlobalStats"
+      },
+      "description": "Stores global game statistics. 'statId' is usually 'stats'."
+    },
+    "/sessions/{sessionId}": {
+      "schema": {
+        "$ref": "#/entities/GameSession"
+      },
+      "description": "Logs individual game sessions."
+    }
+  }
+}

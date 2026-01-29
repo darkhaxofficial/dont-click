@@ -2,11 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { type User, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { doc, runTransaction, serverTimestamp } from 'firebase/firestore';
-import { auth, db, collection } from '@/lib/firebase';
+import { doc, runTransaction, serverTimestamp, collection } from 'firebase/firestore';
+import { useAuth, useFirestore } from '@/firebase';
 import { generateTensionMessage } from '@/ai/flows/generate-tension-message';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function Home() {
+  const auth = useAuth();
+  const db = useFirestore();
   const [user, setUser] = useState<User | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [isGameOver, setIsGameOver] = useState(false);
@@ -17,6 +21,7 @@ export default function Home() {
 
   // Game setup: Anonymous auth and start timer
   useEffect(() => {
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
@@ -32,7 +37,7 @@ export default function Home() {
       }
     });
     return () => unsubscribe();
-  }, [isGameOver, startTime]);
+  }, [auth, isGameOver, startTime]);
 
   // Tension message logic
   useEffect(() => {
@@ -69,7 +74,7 @@ export default function Home() {
 
   // Game over logic
   const handleGameOver = useCallback(async () => {
-    if (isGameOver || !startTime || !user) return;
+    if (isGameOver || !startTime || !user || !db) return;
 
     setIsGameOver(true);
     const endTime = Date.now();
@@ -77,58 +82,66 @@ export default function Home() {
     setSurvivalTime(duration);
 
     // Persist data to Firestore
-    try {
-      const todayStr = new Date().toISOString().split('T')[0];
-      await runTransaction(db, async (transaction) => {
-        const userRef = doc(db, 'users', user.uid);
-        const globalStatsRef = doc(db, 'globalStats', 'stats');
-        const sessionRef = doc(collection(db, 'sessions'));
+    const todayStr = new Date().toISOString().split('T')[0];
+    runTransaction(db, async (transaction) => {
+      const userRef = doc(db, 'users', user.uid);
+      const globalStatsRef = doc(db, 'globalStats', 'stats');
+      const sessionRef = doc(collection(db, 'sessions'));
 
-        const userDoc = await transaction.get(userRef);
-        const globalDoc = await transaction.get(globalStatsRef);
-        
-        const userData = userDoc.data() || { personalBest: 0, totalAttempts: 0 };
-        const globalData = globalDoc.data() || { totalPlays: 0, dailyBest: 0, dailyBestDate: '' };
-        
-        // Update user stats
-        const newPersonalBest = Math.max(userData.personalBest, duration);
-        transaction.set(userRef, {
-          personalBest: newPersonalBest,
-          totalAttempts: (userData.totalAttempts || 0) + 1,
-          lastPlayed: serverTimestamp(),
-        }, { merge: true });
+      const userDoc = await transaction.get(userRef);
+      const globalDoc = await transaction.get(globalStatsRef);
+      
+      const userData = userDoc.data() || { personalBest: 0, totalAttempts: 0 };
+      const globalData = globalDoc.data() || { totalPlays: 0, dailyBest: 0, dailyBestDate: '' };
+      
+      // Update user stats
+      const newPersonalBest = Math.max(userData.personalBest, duration);
+      transaction.set(userRef, {
+        personalBest: newPersonalBest,
+        totalAttempts: (userData.totalAttempts || 0) + 1,
+        lastPlayed: serverTimestamp(),
+      }, { merge: true });
 
-        // Update global stats
-        let newDailyBest = duration;
-        if (globalData.dailyBestDate === todayStr) {
-          newDailyBest = Math.max(globalData.dailyBest, duration);
-        }
-        transaction.set(globalStatsRef, {
-          totalPlays: (globalData.totalPlays || 0) + 1,
-          dailyBest: newDailyBest,
-          dailyBestDate: todayStr,
-          lastUpdate: serverTimestamp(),
-        }, { merge: true });
-        
-        // Log session
-        transaction.set(sessionRef, {
-          userId: user.uid,
-          startTime,
-          endTime,
-          duration,
-          createdAt: serverTimestamp(),
-        });
+      // Update global stats
+      let newDailyBest = duration;
+      if (globalData.dailyBestDate === todayStr) {
+        newDailyBest = Math.max(globalData.dailyBest, duration);
+      }
+      transaction.set(globalStatsRef, {
+        totalPlays: (globalData.totalPlays || 0) + 1,
+        dailyBest: newDailyBest,
+        dailyBestDate: todayStr,
+        lastUpdate: serverTimestamp(),
+      }, { merge: true });
+      
+      // Log session
+      transaction.set(sessionRef, {
+        userId: user.uid,
+        startTime,
+        endTime,
+        duration,
+        createdAt: serverTimestamp(),
       });
-    } catch (e) {
-      console.error("Transaction failed: ", e);
-    }
+    }).catch((serverError) => {
+      // Emit a contextual error for debugging
+      const permissionError = new FirestorePermissionError({
+        path: 'N/A (Transaction)',
+        operation: 'transaction',
+        requestResourceData: { 
+          note: 'Data for transaction not logged for brevity',
+          userId: user.uid,
+          duration,
+          },
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
     
     // UI Effects
     setShowFlash(true);
     setTimeout(() => setShowFlash(false), 200);
     setTimeout(() => window.location.reload(), 3000);
 
-  }, [startTime, user, isGameOver]);
+  }, [startTime, user, isGameOver, db]);
 
   // Click listener
   useEffect(() => {
