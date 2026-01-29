@@ -22,6 +22,10 @@ const earlyGameMessages = [
   "Just breathe.",
   "The silence is deafening, isn't it?",
   "Curiosity is a powerful thing.",
+  "Every second feels longer than the last.",
+  "Are you in control?",
+  "There's nothing to see here. Move on.",
+  "They said you wouldn't last this long.",
 ];
 
 const midGameMessages = [
@@ -35,6 +39,10 @@ const midGameMessages = [
   "Your score is... unimpressive so far.",
   "Any second now...",
   "Just a little longer.",
+  "Your focus is slipping.",
+  "Is this a test of patience or a waste of time?",
+  "The others gave up by now.",
+  "Your mouse is getting heavier.",
 ];
 
 const lateGameMessages = [
@@ -47,6 +55,11 @@ const lateGameMessages = [
   "It's inevitable.",
   "What are you waiting for?",
   "What do you think happens when you click?",
+  "This is your life now. Just waiting.",
+  "You're proving nothing.",
+  "Let go. It's not worth it.",
+  "There is no prize.",
+  "Your family misses you.",
 ];
 
 export default function Home() {
@@ -69,7 +82,6 @@ export default function Home() {
   // Distraction states
   const [mainTextStyle, setMainTextStyle] = useState<React.CSSProperties>({});
   const [cursorStyle, setCursorStyle] = useState('default');
-  const [fakeAlert, setFakeAlert] = useState<{ active: boolean; content: React.ReactNode } | null>(null);
   const [mainText, setMainText] = useState("DON’T CLICK");
   const distractionTimeouts = useRef<NodeJS.Timeout[]>([]);
 
@@ -134,8 +146,8 @@ export default function Home() {
         setIsMessageVisible(false);
       }, 4000); // Message visible for 4 seconds
 
-      const minInterval = elapsed > 120000 ? 4000 : 5000;
-      const maxInterval = elapsed > 120000 ? 10000 : 12000;
+      const minInterval = elapsed > 120000 ? 3500 : 5000;
+      const maxInterval = elapsed > 120000 ? 8000 : 12000;
       const randomInterval = Math.random() * (maxInterval - minInterval) + minInterval;
       messageTimeoutId = setTimeout(displayMessage, randomInterval);
     };
@@ -155,7 +167,6 @@ export default function Home() {
     distractionTimeouts.current = [];
     setMainTextStyle({});
     setCursorStyle('default');
-    setFakeAlert(null);
     setMainText("DON’T CLICK");
   }, []);
 
@@ -196,27 +207,6 @@ export default function Home() {
         const randomToast = fakeToasts[Math.floor(Math.random() * fakeToasts.length)];
         toast(randomToast);
     };
-    
-    const fakeAlerts = [
-      { title: "System Warning", message: "Unstable connection detected. Click OK to re-sync.", button: "OK" },
-      { title: "Memory Warning", message: "Browser memory is low. Please close unused tabs.", button: "Dismiss" },
-    ];
-    const triggerFakeAlert = () => {
-      const alertContent = fakeAlerts[Math.floor(Math.random() * fakeAlerts.length)];
-      setFakeAlert({
-          active: true,
-          content: (
-              <div className="bg-card border border-destructive text-card-foreground p-4 rounded-lg shadow-2xl w-11/12 max-w-xs animate-fade-in">
-                  <h3 className="font-headline font-bold text-lg mb-2">{alertContent.title}</h3>
-                  <p className="text-sm mb-4">{alertContent.message}</p>
-                  <div className="flex justify-end">
-                      <Button variant="destructive" size="sm">{alertContent.button}</Button>
-                  </div>
-              </div>
-          )
-      });
-      addTimeout(setTimeout(() => setFakeAlert(null), 2500 + Math.random() * 2000));
-    };
 
     const cursorTypes = ['wait', 'progress', 'help', 'not-allowed', 'move'];
     const triggerCursorChange = () => {
@@ -232,7 +222,7 @@ export default function Home() {
         addTimeout(setTimeout(() => setMainText("DON’T CLICK"), 750));
     };
 
-    let lastJitter = 0, lastToast = 0, lastCursor = 0, lastAlert = 0, lastDeceptive = 0;
+    let lastJitter = 0, lastToast = 0, lastCursor = 0, lastDeceptive = 0;
     let animationFrameId: number;
 
     const distractionLoop = () => {
@@ -246,7 +236,7 @@ export default function Home() {
         }
 
         // Stage 2: Toasts (from 30s)
-        if (elapsed > 30000 && now - lastToast > (20000 + Math.random() * 20000)) {
+        if (elapsed > 30000 && now - lastToast > (25000 + Math.random() * 25000)) {
             triggerFakeToast();
             lastToast = now;
         }
@@ -258,16 +248,8 @@ export default function Home() {
                 lastCursor = now;
             }
         }
-
-        // Stage 4: More Aggressive (from 90s)
-        if (elapsed > 90000) {
-            if (now - lastAlert > (25000 + Math.random() * 20000)) {
-                triggerFakeAlert();
-                lastAlert = now;
-            }
-        }
         
-        // Stage 5: Deception (from 120s)
+        // Stage 4: Deception (from 120s)
         if (elapsed > 120000) {
             if (now - lastDeceptive > (30000 + Math.random() * 30000)) {
                 triggerDeceptiveText();
@@ -457,14 +439,6 @@ export default function Home() {
         {isGameOver && <Leaderboard />}
       </div>
 
-
-      {/* Fake Alert Overlay */}
-      {fakeAlert?.active && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-              {fakeAlert.content}
-          </div>
-      )}
-
       <footer className="text-center text-muted-foreground text-sm py-4 w-full">
         <p className="mb-1">Made with ❤️ by DarkHax</p>
         <a 
@@ -479,3 +453,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
