@@ -207,7 +207,7 @@ export default function Home() {
       setFakeAlert({
           active: true,
           content: (
-              <div className="bg-card border border-destructive text-card-foreground p-4 rounded-lg shadow-2xl w-80 animate-fade-in">
+              <div className="bg-card border border-destructive text-card-foreground p-4 rounded-lg shadow-2xl w-11/12 max-w-xs animate-fade-in">
                   <h3 className="font-headline font-bold text-lg mb-2">{alertContent.title}</h3>
                   <p className="text-sm mb-4">{alertContent.message}</p>
                   <div className="flex justify-end">
@@ -317,6 +317,7 @@ export default function Home() {
         personalBest: newPersonalBest,
         totalAttempts: (userData.totalAttempts || 0) + 1,
         lastPlayed: serverTimestamp(),
+        // displayName is not set here, but merged
       }, { merge: true });
 
       // Update global stats
@@ -361,7 +362,7 @@ export default function Home() {
 
   const handleNameSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !db || !playerName.trim()) return;
+    if (!user || !db || !playerName.trim() || playerName.trim().length > 25) return;
 
     setIsSubmittingName(true);
     const userRef = doc(db, 'users', user.uid);
@@ -398,19 +399,19 @@ export default function Home() {
           const milliseconds = survivalTime % 1000;
           return (
               <div className="text-center animate-fade-in">
-              <h1 className="text-4xl md:text-6xl font-headline font-black mb-4">YOU CLICKED</h1>
-              <p className="text-xl md:text-3xl font-body">You survived for</p>
-              <div className="flex items-baseline justify-center my-4 text-5xl md:text-8xl font-headline font-black">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-headline font-black mb-4">YOU CLICKED</h1>
+              <p className="text-lg sm:text-xl font-body">You survived for</p>
+              <div className="flex items-baseline justify-center my-4 text-4xl sm:text-6xl md:text-7xl font-headline font-black">
                   {minutes > 0 && (
                   <>
                       <span>{minutes}</span>
-                      <span className="text-2xl md:text-4xl font-body font-normal mx-2">m</span>
+                      <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">m</span>
                   </>
                   )}
                   <span>{minutes > 0 ? String(seconds).padStart(2, '0') : seconds}</span>
-                  <span className="text-2xl md:text-4xl font-body font-normal mx-2">s</span>
+                  <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">s</span>
                   <span>{String(milliseconds).padStart(3, '0')}</span>
-                  <span className="text-2xl md:text-4xl font-body font-normal mx-2">ms</span>
+                  <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">ms</span>
               </div>
               <Button onClick={() => window.location.reload()} className="mt-8" size="lg">
                   Try Again
@@ -437,11 +438,11 @@ export default function Home() {
         })() : (
           <div className="relative flex flex-col items-center justify-center text-center">
              {startTime === null ? (
-               <h1 className="text-6xl md:text-9xl font-headline font-black tracking-widest animate-pulse">
+               <h1 className="text-5xl sm:text-7xl md:text-9xl font-headline font-black tracking-widest animate-pulse">
                   LOADING...
                </h1>
              ) : (
-              <h1 style={mainTextStyle} className="text-6xl md:text-9xl font-headline font-black tracking-widest">
+              <h1 style={mainTextStyle} className="text-5xl sm:text-7xl md:text-9xl font-headline font-black tracking-tight md:tracking-widest">
                 {mainText}
               </h1>
              )}

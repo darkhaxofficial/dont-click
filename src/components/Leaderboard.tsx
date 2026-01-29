@@ -48,7 +48,7 @@ export function Leaderboard() {
   if (loading && !leaderboard) {
     return (
       <div className="w-full max-w-lg mx-auto mt-12">
-        <h2 className="text-3xl font-headline font-bold text-center mb-4">Leaderboard</h2>
+        <h2 className="text-2xl sm:text-3xl font-headline font-bold text-center mb-4">Leaderboard</h2>
         <Card>
             <CardContent className="p-4">
                 <div className="space-y-2">
@@ -66,23 +66,23 @@ export function Leaderboard() {
 
   return (
     <div className="w-full max-w-lg mx-auto mt-12 animate-fade-in">
-      <h2 className="text-3xl font-headline font-bold text-center mb-4">Top 10 Survivors</h2>
+      <h2 className="text-2xl sm:text-3xl font-headline font-bold text-center mb-4">Top 10 Survivors</h2>
       <Card>
           <CardContent className="p-0">
             <Table>
                 <TableHeader>
                 <TableRow>
-                    <TableHead className="w-[50px] text-center">Rank</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead className="text-right">Player</TableHead>
+                    <TableHead className="w-[50px] text-center px-2 sm:px-4">Rank</TableHead>
+                    <TableHead className="px-2 sm:px-4">Time</TableHead>
+                    <TableHead className="text-right px-2 sm:px-4">Player</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
                 {leaderboard && leaderboard.map((user, index) => (
                     <TableRow key={user.id}>
-                    <TableCell className="font-medium text-center">{index + 1}</TableCell>
-                    <TableCell className="font-mono">{formatTime(user.personalBest)}</TableCell>
-                    <TableCell className="text-right font-mono">{user.displayName || (user.id ? `...${user.id.slice(-6)}` : '...')}</TableCell>
+                    <TableCell className="font-medium text-center p-2 sm:p-4">{index + 1}</TableCell>
+                    <TableCell className="font-mono p-2 sm:p-4">{formatTime(user.personalBest)}</TableCell>
+                    <TableCell className="text-right font-mono p-2 sm:p-4">{user.displayName || (user.id ? `...${user.id.slice(-6)}` : '...')}</TableCell>
                     </TableRow>
                 ))}
                 {(!leaderboard || leaderboard.length === 0) && !loading && (
