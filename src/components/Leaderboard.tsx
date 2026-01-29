@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -45,6 +46,8 @@ export function Leaderboard() {
 
   const { data: leaderboard, loading } = useCollection<UserProfile>(leaderboardQuery);
 
+  const topPlayer = leaderboard && leaderboard.length > 0 ? leaderboard[0] : null;
+
   if (loading && !leaderboard) {
     return (
       <div className="w-full max-w-lg mx-auto mt-12">
@@ -66,6 +69,11 @@ export function Leaderboard() {
 
   return (
     <div className="w-full max-w-lg mx-auto mt-12 animate-fade-in">
+      {topPlayer && topPlayer.displayName && (
+        <h3 className="text-xl sm:text-2xl font-headline font-bold text-center mb-2 uppercase text-accent animate-pulse">
+          BEAT THE {topPlayer.displayName.toUpperCase()} AND BE THE TOP ONE
+        </h3>
+      )}
       <h2 className="text-2xl sm:text-3xl font-headline font-bold text-center mb-4">Top 10 Survivors</h2>
       <Card>
           <CardContent className="p-0">
