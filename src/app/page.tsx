@@ -7,6 +7,7 @@ import { useAuth, useFirestore } from '@/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Button } from '@/components/ui/button';
+import { Leaderboard } from '@/components/Leaderboard';
 
 const tensionMessages = [
   "Are you sure you understand what's at stake?",
@@ -162,50 +163,53 @@ export default function Home() {
   }, [handleGameOver, isGameOver, startTime]);
 
   return (
-    <main className={`flex min-h-screen flex-col items-center justify-center p-4 bg-background text-foreground transition-colors duration-100 ${showFlash ? 'bg-accent' : ''}`}>
-      {isGameOver ? (() => {
-        const minutes = Math.floor(survivalTime / 60000);
-        const seconds = Math.floor((survivalTime % 60000) / 1000);
-        const milliseconds = survivalTime % 1000;
-        return (
-            <div className="text-center animate-fade-in">
-            <h1 className="text-4xl md:text-6xl font-headline font-black mb-4">YOU CLICKED</h1>
-            <p className="text-xl md:text-3xl font-body">You survived for</p>
-            <div className="flex items-baseline justify-center my-4 text-5xl md:text-8xl font-headline font-black">
-                {minutes > 0 && (
-                <>
-                    <span>{minutes}</span>
-                    <span className="text-2xl md:text-4xl font-body font-normal mx-2">m</span>
-                </>
-                )}
-                <span>{minutes > 0 ? String(seconds).padStart(2, '0') : seconds}</span>
-                <span className="text-2xl md:text-4xl font-body font-normal mx-2">s</span>
-                <span>{String(milliseconds).padStart(3, '0')}</span>
-                <span className="text-2xl md:text-4xl font-body font-normal mx-2">ms</span>
+    <main className={`flex min-h-screen flex-col items-center justify-between p-4 sm:p-8 md:p-12 bg-background text-foreground transition-colors duration-100 ${showFlash ? 'bg-accent' : ''}`}>
+      <div className="flex-grow flex items-center justify-center w-full">
+        {isGameOver ? (() => {
+          const minutes = Math.floor(survivalTime / 60000);
+          const seconds = Math.floor((survivalTime % 60000) / 1000);
+          const milliseconds = survivalTime % 1000;
+          return (
+              <div className="text-center animate-fade-in">
+              <h1 className="text-4xl md:text-6xl font-headline font-black mb-4">YOU CLICKED</h1>
+              <p className="text-xl md:text-3xl font-body">You survived for</p>
+              <div className="flex items-baseline justify-center my-4 text-5xl md:text-8xl font-headline font-black">
+                  {minutes > 0 && (
+                  <>
+                      <span>{minutes}</span>
+                      <span className="text-2xl md:text-4xl font-body font-normal mx-2">m</span>
+                  </>
+                  )}
+                  <span>{minutes > 0 ? String(seconds).padStart(2, '0') : seconds}</span>
+                  <span className="text-2xl md:text-4xl font-body font-normal mx-2">s</span>
+                  <span>{String(milliseconds).padStart(3, '0')}</span>
+                  <span className="text-2xl md:text-4xl font-body font-normal mx-2">ms</span>
+              </div>
+              <Button onClick={() => window.location.reload()} className="mt-8" size="lg">
+                  Try Again
+              </Button>
+              </div>
+          );
+        })() : (
+          <div className="relative flex flex-col items-center justify-center text-center">
+             {startTime === null ? (
+               <h1 className="text-6xl md:text-9xl font-headline font-black tracking-widest animate-pulse">
+                  LOADING...
+               </h1>
+             ) : (
+              <h1 className="text-6xl md:text-9xl font-headline font-black tracking-widest">
+                DON’T CLICK
+              </h1>
+             )}
+            <div className="absolute top-full mt-8 h-16 w-screen max-w-lg px-4">
+              <p className={`text-xl md:text-2xl font-body text-muted-foreground transition-opacity duration-1000 ${isMessageVisible ? 'opacity-100' : 'opacity-0'}`}>
+                {currentMessage?.text}
+              </p>
             </div>
-            <Button onClick={() => window.location.reload()} className="mt-8" size="lg">
-                Try Again
-            </Button>
-            </div>
-        );
-      })() : (
-        <div className="relative flex flex-col items-center justify-center text-center">
-           {startTime === null ? (
-             <h1 className="text-6xl md:text-9xl font-headline font-black tracking-widest animate-pulse">
-                LOADING...
-             </h1>
-           ) : (
-            <h1 className="text-6xl md:text-9xl font-headline font-black tracking-widest">
-              DON’T CLICK
-            </h1>
-           )}
-          <div className="absolute top-full mt-8 h-16 w-screen max-w-lg px-4">
-            <p className={`text-xl md:text-2xl font-body text-muted-foreground transition-opacity duration-1000 ${isMessageVisible ? 'opacity-100' : 'opacity-0'}`}>
-              {currentMessage?.text}
-            </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+      <Leaderboard />
     </main>
   );
 }
