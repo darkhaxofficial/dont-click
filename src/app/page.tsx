@@ -4,9 +4,24 @@ import { useState, useEffect, useCallback } from 'react';
 import { type User, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { doc, runTransaction, serverTimestamp, collection } from 'firebase/firestore';
 import { useAuth, useFirestore } from '@/firebase';
-import { generateTensionMessage } from '@/ai/flows/generate-tension-message';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+
+const tensionMessages = [
+  "Are you sure you understand what's at stake?",
+  "Is this really worth it?",
+  "Any second now...",
+  "You're being watched.",
+  "They know.",
+  "How much longer can you resist?",
+  "It's inevitable.",
+  "What are you waiting for?",
+  "Just a little longer.",
+  "The silence is deafening, isn't it?",
+  "Patience is a virtue... or is it a trap?",
+  "What do you think happens when you click?",
+  "Curiosity is a powerful thing.",
+];
 
 export default function Home() {
   const auth = useAuth();
@@ -45,21 +60,15 @@ export default function Home() {
 
     let messageTimeoutId: NodeJS.Timeout;
 
-    const displayMessage = async () => {
-      try {
-        const timeElapsed = Date.now() - startTime;
-        const result = await generateTensionMessage({ gameState: 'ongoing', timeElapsed });
-        
-        setCurrentMessage({ id: Date.now(), text: result.message });
-        setIsMessageVisible(true);
+    const displayMessage = () => {
+      const message = tensionMessages[Math.floor(Math.random() * tensionMessages.length)];
+      
+      setCurrentMessage({ id: Date.now(), text: message });
+      setIsMessageVisible(true);
 
-        setTimeout(() => {
-          setIsMessageVisible(false);
-        }, 4000); // Message visible for 4 seconds
-
-      } catch (error) {
-        console.error("Failed to generate tension message:", error);
-      }
+      setTimeout(() => {
+        setIsMessageVisible(false);
+      }, 4000); // Message visible for 4 seconds
 
       const randomInterval = Math.random() * (12000 - 5000) + 5000;
       messageTimeoutId = setTimeout(displayMessage, randomInterval);
