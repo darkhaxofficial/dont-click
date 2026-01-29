@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { type User, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { doc, runTransaction, serverTimestamp, collection, getDoc, updateDoc } from 'firebase/firestore';
 import { useAuth, useFirestore } from '@/firebase';
@@ -9,6 +9,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { Button } from '@/components/ui/button';
 import { Leaderboard } from '@/components/Leaderboard';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 const tensionMessages = [
   "Are you sure you understand what's at stake?",
@@ -29,6 +30,7 @@ const tensionMessages = [
 export default function Home() {
   const auth = useAuth();
   const db = useFirestore();
+  const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [isGameOver, setIsGameOver] = useState(false);
@@ -41,6 +43,13 @@ export default function Home() {
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
   const [isSubmittingName, setIsSubmittingName] = useState(false);
   const [userProfileLoaded, setUserProfileLoaded] = useState(false);
+
+  // Distraction states
+  const [mainTextStyle, setMainTextStyle] = useState<React.CSSProperties>({});
+  const [cursorStyle, setCursorStyle] = useState('default');
+  const [fakeAlert, setFakeAlert] = useState<{ active: boolean; content: React.ReactNode } | null>(null);
+  const [mainText, setMainText] = useState("DON’T CLICK");
+  const distractionTimeouts = useRef<NodeJS.Timeout[]>([]);
 
 
   // Game setup: Anonymous auth and start timer
@@ -102,6 +111,144 @@ export default function Home() {
 
     return () => clearTimeout(messageTimeoutId);
   }, [startTime, isGameOver]);
+
+
+  // --- DISTRACTION LOGIC ---
+
+  const clearAllDistractions = useCallback(() => {
+    distractionTimeouts.current.forEach(clearTimeout);
+    distractionTimeouts.current = [];
+    setMainTextStyle({});
+    setCursorStyle('default');
+    setFakeAlert(null);
+    setMainText("DON’T CLICK");
+  }, []);
+
+  useEffect(() => {
+    if (!startTime || isGameOver) {
+        clearAllDistractions();
+        return;
+    }
+
+    const addTimeout = (id: NodeJS.Timeout) => {
+        distractionTimeouts.current.push(id);
+    };
+
+    const triggerTextJitter = () => {
+        const x = (Math.random() - 0.5) * 4;
+        const y = (Math.random() - 0.5) * 4;
+        const rot = (Math.random() - 0.5) * 0.5;
+        const opacity = 1 - Math.random() * 0.1;
+        setMainTextStyle({
+            transform: `translate(${x}px, ${y}px) rotate(${rot}deg)`,
+            opacity: opacity,
+            transition: 'transform 0.05s, opacity 0.05s',
+        });
+        addTimeout(setTimeout(() => setMainTextStyle({ transition: 'transform 0.2s, opacity 0.2s' }), 100));
+    };
+
+    const fakeToasts = [
+        { title: "New Record!", description: "Player_734 just survived 3m 41s" },
+        { title: "You've been challenged!", description: "Beat 2m 11s to win." },
+        { title: "Daily Best Broken", description: "A new champion reigns at 5m 02s." },
+        { variant: "destructive" as const, title: "Player Disconnected", description: "xX_Gamer_Xx gave up." },
+    ];
+    const triggerFakeToast = () => {
+        const randomToast = fakeToasts[Math.floor(Math.random() * fakeToasts.length)];
+        toast(randomToast);
+    };
+    
+    const fakeAlerts = [
+      { title: "System Warning", message: "Unstable connection detected. Click OK to re-sync.", button: "OK" },
+      { title: "Achievement Unlocked!", message: "Patience is a virtue. Claim your reward.", button: "Claim" },
+      { title: "Memory Warning", message: "Browser memory is low. Please close unused tabs.", button: "Dismiss" },
+    ];
+    const triggerFakeAlert = () => {
+      const alertContent = fakeAlerts[Math.floor(Math.random() * fakeAlerts.length)];
+      setFakeAlert({
+          active: true,
+          content: (
+              <div className="bg-card border border-destructive text-card-foreground p-4 rounded-lg shadow-2xl w-80 animate-fade-in">
+                  <h3 className="font-headline font-bold text-lg mb-2">{alertContent.title}</h3>
+                  <p className="text-sm mb-4">{alertContent.message}</p>
+                  <div className="flex justify-end">
+                      <Button variant="destructive" size="sm">{alertContent.button}</Button>
+                  </div>
+              </div>
+          )
+      });
+      addTimeout(setTimeout(() => setFakeAlert(null), 2500 + Math.random() * 2000));
+    };
+
+    const cursorTypes = ['wait', 'progress', 'help', 'not-allowed', 'move'];
+    const triggerCursorChange = () => {
+        const cursor = cursorTypes[Math.floor(Math.random() * cursorTypes.length)];
+        setCursorStyle(cursor);
+        addTimeout(setTimeout(() => setCursorStyle('default'), 1000 + Math.random() * 1500));
+    };
+
+    const deceptiveTexts = ["CLICK NOW", "YOU WON", "CLAIM PRIZE", "FINISH HIM"];
+    const triggerDeceptiveText = () => {
+        const text = deceptiveTexts[Math.floor(Math.random() * deceptiveTexts.length)];
+        setMainText(text);
+        addTimeout(setTimeout(() => setMainText("DON’T CLICK"), 750));
+    };
+
+    let lastJitter = 0, lastToast = 0, lastCursor = 0, lastAlert = 0, lastDeceptive = 0;
+    let animationFrameId: number;
+
+    const distractionLoop = () => {
+        const now = Date.now();
+        const elapsed = now - startTime;
+
+        // Stage 1: Jitter (from 5s)
+        if (elapsed > 5000 && now - lastJitter > (3000 + Math.random() * 5000)) {
+            triggerTextJitter();
+            lastJitter = now;
+        }
+
+        // Stage 2: Toasts (from 30s)
+        if (elapsed > 30000 && now - lastToast > (12000 + Math.random() * 10000)) {
+            triggerFakeToast();
+            lastToast = now;
+        }
+        
+        // Stage 3: Aggressive (from 60s)
+        if (elapsed > 60000) {
+              if (now - lastCursor > (10000 + Math.random() * 15000)) {
+                triggerCursorChange();
+                lastCursor = now;
+            }
+        }
+
+        // Stage 4: More Aggressive (from 90s)
+        if (elapsed > 90000) {
+            if (now - lastAlert > (25000 + Math.random() * 20000)) {
+                triggerFakeAlert();
+                lastAlert = now;
+            }
+        }
+        
+        // Stage 5: Deception (from 120s)
+        if (elapsed > 120000) {
+            if (now - lastDeceptive > (30000 + Math.random() * 30000)) {
+                triggerDeceptiveText();
+                lastDeceptive = now;
+            }
+        }
+
+        animationFrameId = requestAnimationFrame(distractionLoop);
+    };
+
+    animationFrameId = requestAnimationFrame(distractionLoop);
+    
+    return () => {
+        cancelAnimationFrame(animationFrameId);
+        clearAllDistractions();
+    }
+
+  }, [startTime, isGameOver, toast, clearAllDistractions]);
+
 
   // Game over logic
   const handleGameOver = useCallback(async () => {
@@ -204,7 +351,7 @@ export default function Home() {
   }, [handleGameOver, isGameOver, startTime]);
 
   return (
-    <main className={`flex min-h-screen flex-col items-center justify-between p-4 sm:p-8 md:p-12 bg-background text-foreground transition-colors duration-100 ${showFlash ? 'bg-accent' : ''}`}>
+    <main style={{ cursor: cursorStyle }} className={`flex min-h-screen flex-col items-center justify-between p-4 sm:p-8 md:p-12 bg-background text-foreground transition-colors duration-100 ${showFlash ? 'bg-accent' : ''}`}>
       <div className="flex-grow flex items-center justify-center w-full">
         {isGameOver ? (() => {
           const minutes = Math.floor(survivalTime / 60000);
@@ -255,8 +402,8 @@ export default function Home() {
                   LOADING...
                </h1>
              ) : (
-              <h1 className="text-6xl md:text-9xl font-headline font-black tracking-widest">
-                DON’T CLICK
+              <h1 style={mainTextStyle} className="text-6xl md:text-9xl font-headline font-black tracking-widest">
+                {mainText}
               </h1>
              )}
             <div className="absolute top-full mt-8 h-16 w-screen max-w-lg px-4">
@@ -267,6 +414,14 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Fake Alert Overlay */}
+      {fakeAlert?.active && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+              {fakeAlert.content}
+          </div>
+      )}
+
       {isGameOver && <Leaderboard />}
     </main>
   );
