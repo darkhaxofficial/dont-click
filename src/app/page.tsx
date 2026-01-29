@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Leaderboard } from '@/components/Leaderboard';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 
 const tensionMessages = [
   "Are you sure you understand what's at stake?",
@@ -149,7 +150,11 @@ export default function Home() {
 
     const fakeToasts = [
         { title: "New Record!", description: "Player_734 just survived 3m 41s" },
-        { title: "You've been challenged!", description: "Beat 2m 11s to win." },
+        { 
+            title: "You've been challenged!", 
+            description: "Beat 2m 11s to win.",
+            action: <ToastAction altText="Accept challenge">Accept</ToastAction>,
+        },
         { title: "Daily Best Broken", description: "A new champion reigns at 5m 02s." },
         { variant: "destructive" as const, title: "Player Disconnected", description: "xX_Gamer_Xx gave up." },
     ];
