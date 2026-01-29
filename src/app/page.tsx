@@ -194,6 +194,81 @@ export default function Home() {
     clearAllDistractions();
   }, [startTime, isGameOver, clearAllDistractions]);
 
+  const handleGameOver = useCallback(async () => {
+    if (isGameOver || !startTime || !user || !db) return;
+
+    setIsGameOver(true);
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    setSurvivalTime(duration);
+    if (messageTimeoutId.current) {
+        clearTimeout(messageTimeoutId.current);
+    }
+    clearAllDistractions();
+
+
+    // Persist data to Firestore
+    const todayStr = new Date().toISOString().split('T')[0];
+    runTransaction(db, async (transaction) => {
+      const userRef = doc(db, 'users', user.uid);
+      const globalStatsRef = doc(db, 'globalStats', 'stats');
+      const sessionRef = doc(collection(db, 'sessions'));
+
+      const userDoc = await transaction.get(userRef);
+      const globalDoc = await transaction.get(globalStatsRef);
+      
+      const userData = userDoc.data() || { personalBest: 0, totalAttempts: 0 };
+      const globalData = globalDoc.data() || { totalPlays: 0, dailyBest: 0, dailyBestDate: '' };
+      
+      // Update user stats
+      const newPersonalBest = Math.max(userData.personalBest, duration);
+      transaction.set(userRef, {
+        personalBest: newPersonalBest,
+        totalAttempts: (userData.totalAttempts || 0) + 1,
+        lastPlayed: serverTimestamp(),
+        // displayName is not set here, but merged
+      }, { merge: true });
+
+      // Update global stats
+      let newDailyBest = duration;
+      if (globalData.dailyBestDate === todayStr) {
+        newDailyBest = Math.max(globalData.dailyBest, duration);
+      }
+      transaction.set(globalStatsRef, {
+        totalPlays: (globalData.totalPlays || 0) + 1,
+        dailyBest: newDailyBest,
+        dailyBestDate: todayStr,
+        lastUpdate: serverTimestamp(),
+      }, { merge: true });
+      
+      // Log session
+      transaction.set(sessionRef, {
+        userId: user.uid,
+        startTime,
+        endTime,
+        duration,
+        createdAt: serverTimestamp(),
+      });
+    }).catch((serverError) => {
+      // Emit a contextual error for debugging
+      const permissionError = new FirestorePermissionError({
+        path: 'N/A (Transaction)',
+        operation: 'transaction',
+        requestResourceData: { 
+          note: 'Data for transaction not logged for brevity',
+          userId: user.uid,
+          duration,
+          },
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+    
+    // UI Effects
+    setShowFlash(true);
+    setTimeout(() => setShowFlash(false), 200);
+
+  }, [startTime, user, isGameOver, db, clearAllDistractions]);
+
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -370,80 +445,14 @@ export default function Home() {
   }, [startTime, isGameOver, toast, clearAllDistractions, isMobile]);
 
 
-  // Game over logic
-  const handleGameOver = useCallback(async () => {
-    if (isGameOver || !startTime || !user || !db) return;
-
-    setIsGameOver(true);
-    const endTime = Date.now();
-    const duration = endTime - startTime;
-    setSurvivalTime(duration);
-    if (messageTimeoutId.current) {
-        clearTimeout(messageTimeoutId.current);
-    }
-
-
-    // Persist data to Firestore
-    const todayStr = new Date().toISOString().split('T')[0];
-    runTransaction(db, async (transaction) => {
-      const userRef = doc(db, 'users', user.uid);
-      const globalStatsRef = doc(db, 'globalStats', 'stats');
-      const sessionRef = doc(collection(db, 'sessions'));
-
-      const userDoc = await transaction.get(userRef);
-      const globalDoc = await transaction.get(globalStatsRef);
-      
-      const userData = userDoc.data() || { personalBest: 0, totalAttempts: 0 };
-      const globalData = globalDoc.data() || { totalPlays: 0, dailyBest: 0, dailyBestDate: '' };
-      
-      // Update user stats
-      const newPersonalBest = Math.max(userData.personalBest, duration);
-      transaction.set(userRef, {
-        personalBest: newPersonalBest,
-        totalAttempts: (userData.totalAttempts || 0) + 1,
-        lastPlayed: serverTimestamp(),
-        // displayName is not set here, but merged
-      }, { merge: true });
-
-      // Update global stats
-      let newDailyBest = duration;
-      if (globalData.dailyBestDate === todayStr) {
-        newDailyBest = Math.max(globalData.dailyBest, duration);
-      }
-      transaction.set(globalStatsRef, {
-        totalPlays: (globalData.totalPlays || 0) + 1,
-        dailyBest: newDailyBest,
-        dailyBestDate: todayStr,
-        lastUpdate: serverTimestamp(),
-      }, { merge: true });
-      
-      // Log session
-      transaction.set(sessionRef, {
-        userId: user.uid,
-        startTime,
-        endTime,
-        duration,
-        createdAt: serverTimestamp(),
-      });
-    }).catch((serverError) => {
-      // Emit a contextual error for debugging
-      const permissionError = new FirestorePermissionError({
-        path: 'N/A (Transaction)',
-        operation: 'transaction',
-        requestResourceData: { 
-          note: 'Data for transaction not logged for brevity',
-          userId: user.uid,
-          duration,
-          },
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
-    
-    // UI Effects
-    setShowFlash(true);
-    setTimeout(() => setShowFlash(false), 200);
-
-  }, [startTime, user, isGameOver, db]);
+  // Game over logic is in a separate useEffect
+  useEffect(() => {
+    if (isGameOver || !startTime) return;
+    window.addEventListener('click', handleGameOver);
+    return () => {
+      window.removeEventListener('click', handleGameOver);
+    };
+  }, [handleGameOver, isGameOver, startTime]);
 
   const handleNameSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -475,18 +484,10 @@ export default function Home() {
     }
   };
 
-  // Click listener
-  useEffect(() => {
-    if (isGameOver || !startTime) return;
-    window.addEventListener('click', handleGameOver);
-    return () => {
-      window.removeEventListener('click', handleGameOver);
-    };
-  }, [handleGameOver, isGameOver, startTime]);
 
   return (
-    <main style={{ cursor: cursorStyle }} className={`flex h-screen flex-col p-4 sm:p-8 md:p-12 bg-background text-foreground transition-colors duration-100 ${showFlash ? 'bg-accent' : ''}`}>
-      <div className="flex-grow w-full overflow-y-auto flex flex-col">
+    <main style={{ cursor: cursorStyle }} className={`flex h-full flex-col p-4 sm:p-8 md:p-12 bg-background text-foreground transition-colors duration-100 ${showFlash ? 'bg-accent' : ''}`}>
+      <div className="flex-grow w-full overflow-y-auto flex flex-col min-h-0">
         {isGameOver ? (
           <div className="w-full flex-grow flex flex-col justify-center">
             <div className="w-full">
@@ -557,7 +558,7 @@ export default function Home() {
           </div>
         )}
       </div>
-      <footer className="text-center text-muted-foreground text-sm py-4 w-full">
+      <footer className="text-center text-muted-foreground text-sm py-4 w-full shrink-0">
         <p className="mb-1">Made with ❤️ by DarkHax</p>
         <a 
           href="https://www.buymeacoffee.com/darkhax" 
