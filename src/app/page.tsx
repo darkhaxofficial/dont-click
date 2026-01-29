@@ -497,51 +497,56 @@ export default function Home() {
           Buy me a coffee
         </a>
       </header>
-      <div className="flex-grow flex flex-col items-center justify-center w-full overflow-y-auto">
-        <div className="flex-grow flex items-center justify-center w-full">
-          {isGameOver ? (() => {
-            const minutes = Math.floor(survivalTime / 60000);
-            const seconds = Math.floor((survivalTime % 60000) / 1000);
-            const milliseconds = survivalTime % 1000;
-            return (
-                <div className="text-center animate-fade-in my-8">
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-headline font-black mb-4">YOU CLICKED</h1>
-                <p className="text-lg sm:text-xl font-body">You survived for</p>
-                <div className="flex items-baseline justify-center my-4 text-4xl sm:text-6xl md:text-7xl font-headline font-black">
-                    {minutes > 0 && (
-                    <>
-                        <span>{minutes}</span>
-                        <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">m</span>
-                    </>
+      <div className="flex-grow w-full overflow-y-auto flex flex-col">
+        {isGameOver ? (
+          <div className="w-full">
+            {(() => {
+              const minutes = Math.floor(survivalTime / 60000);
+              const seconds = Math.floor((survivalTime % 60000) / 1000);
+              const milliseconds = survivalTime % 1000;
+              return (
+                  <div className="text-center animate-fade-in my-8">
+                  <h1 className="text-4xl sm:text-5xl md:text-6xl font-headline font-black mb-4">YOU CLICKED</h1>
+                  <p className="text-lg sm:text-xl font-body">You survived for</p>
+                  <div className="flex items-baseline justify-center my-4 text-4xl sm:text-6xl md:text-7xl font-headline font-black">
+                      {minutes > 0 && (
+                      <>
+                          <span>{minutes}</span>
+                          <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">m</span>
+                      </>
+                      )}
+                      <span>{minutes > 0 ? String(seconds).padStart(2, '0') : seconds}</span>
+                      <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">s</span>
+                      <span>{String(milliseconds).padStart(3, '0')}</span>
+                      <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">ms</span>
+                  </div>
+                  <Button onClick={resetGame} className="mt-8" size="lg">
+                      Try Again
+                  </Button>
+
+                  {userProfileLoaded && !userDisplayName && (
+                      <form onSubmit={handleNameSubmit} className="mt-6 flex w-full max-w-xs mx-auto items-center space-x-2">
+                        <Input 
+                          type="text" 
+                          placeholder="Enter name for leaderboard"
+                          value={playerName}
+                          onChange={(e) => setPlayerName(e.target.value)}
+                          disabled={isSubmittingName}
+                          maxLength={25}
+                        />
+                        <Button type="submit" disabled={isSubmittingName || !playerName.trim()}>
+                          {isSubmittingName ? 'Saving...' : 'Add Name'}
+                        </Button>
+                      </form>
                     )}
-                    <span>{minutes > 0 ? String(seconds).padStart(2, '0') : seconds}</span>
-                    <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">s</span>
-                    <span>{String(milliseconds).padStart(3, '0')}</span>
-                    <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">ms</span>
-                </div>
-                <Button onClick={resetGame} className="mt-8" size="lg">
-                    Try Again
-                </Button>
 
-                {userProfileLoaded && !userDisplayName && (
-                    <form onSubmit={handleNameSubmit} className="mt-6 flex w-full max-w-xs mx-auto items-center space-x-2">
-                      <Input 
-                        type="text" 
-                        placeholder="Enter name for leaderboard"
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
-                        disabled={isSubmittingName}
-                        maxLength={25}
-                      />
-                      <Button type="submit" disabled={isSubmittingName || !playerName.trim()}>
-                        {isSubmittingName ? 'Saving...' : 'Add Name'}
-                      </Button>
-                    </form>
-                  )}
-
-                </div>
-            );
-          })() : (
+                  </div>
+              );
+            })()}
+            <Leaderboard />
+          </div>
+        ) : (
+          <div className="flex-grow flex items-center justify-center w-full">
             <div className="relative flex flex-col items-center justify-center text-center">
               {startTime === null ? (
                 <h1 className="text-5xl sm:text-7xl md:text-9xl font-headline font-black tracking-widest animate-pulse">
@@ -558,9 +563,8 @@ export default function Home() {
                 </p>
               </div>
             </div>
-          )}
-        </div>
-        {isGameOver && <Leaderboard />}
+          </div>
+        )}
       </div>
     </main>
   );
