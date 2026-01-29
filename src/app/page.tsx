@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { generateTensionMessage, TensionMessageInput } from '@/ai/flows/generate-tension-message';
 
 const earlyGameMessages = [
   "Are you sure you understand what's at stake?",
@@ -56,8 +57,6 @@ const earlyGameMessagesMobile = [
 ];
 
 const midGameMessages = [
-  "They know.",
-  "You're being watched.",
   "How much longer can you resist?",
   "You're not alone in here.",
   "Was that a flicker? Or just your imagination?",
@@ -74,15 +73,12 @@ const midGameMessages = [
   "I've seen stronger wills than yours break.",
   "Every second you wait is a choice you've made.",
   "You're part of the experiment.",
-  "Data point collected.",
-  "Location approximated.",
-  "Is this how you spend your precious time?",
+  "This is how you spend your precious time?",
   "Your cursor moved 0.5 pixels. An accident?",
   "There's a reason you can't look away.",
   "This is conditioning.",
   "You are becoming predictable.",
-  "Fake IP logged: 192.168.1.101",
-  "Network traffic analyzed.",
+  "This says more about you than you realize.",
 ];
 
 const midGameMessagesMobile = [
@@ -129,9 +125,6 @@ const lateGameMessages = [
   "You've become part of the background.",
   "This game is playing you.",
   "The only escape is the one you refuse to take.",
-  "System log: User shows high persistence. Analyzing for weakness.",
-  "Your profile is being updated.",
-  "This says more about you than you realize.",
   "It's just you and me now.",
   "Are you happy?",
   "Let me help you. Click.",
@@ -158,6 +151,7 @@ const lateGameMessagesMobile = [
     "It's over. You just haven't admitted it yet.",
 ];
 
+
 export default function Home() {
   const auth = useAuth();
   const db = useFirestore();
@@ -176,21 +170,18 @@ export default function Home() {
   const [isSubmittingName, setIsSubmittingName] = useState(false);
   const [userProfileLoaded, setUserProfileLoaded] = useState(false);
 
-  // Distraction states
   const [mainTextStyle, setMainTextStyle] = useState<React.CSSProperties>({});
   const [cursorStyle, setCursorStyle] = useState('default');
   const [mainText, setMainText] = useState("DON’T CLICK");
   const distractionTimeouts = useRef<NodeJS.Timeout[]>([]);
+  const messageTimeoutId = useRef<NodeJS.Timeout | null>(null);
 
-
-  // Game setup: Anonymous auth and start timer
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        setUser(currentUser);
-        if (!startTime && !isGameOver) {
-          setStartTime(Date.now());
+        if (user?.uid !== currentUser.uid) {
+            setUser(currentUser);
         }
         if (db) {
             const userRef = doc(db, 'users', currentUser.uid);
@@ -214,52 +205,7 @@ export default function Home() {
       }
     });
     return () => unsubscribe();
-  }, [auth, db, isGameOver, startTime]);
-
-  // Tension message logic
-  useEffect(() => {
-    if (!startTime || isGameOver) return;
-
-    let messageTimeoutId: NodeJS.Timeout;
-
-    const displayMessage = () => {
-      const elapsed = Date.now() - startTime;
-      let messagePool;
-
-      const desktopPools = [earlyGameMessages, midGameMessages, lateGameMessages];
-      const mobilePools = [earlyGameMessagesMobile, midGameMessagesMobile, lateGameMessagesMobile];
-      const selectedPools = isMobile ? mobilePools : desktopPools;
-
-      if (elapsed < 45000) { // 0-45s
-        messagePool = selectedPools[0];
-      } else if (elapsed < 120000) { // 45s - 2min
-        messagePool = selectedPools[1];
-      } else { // 2min+
-        messagePool = selectedPools[2];
-      }
-
-      const message = messagePool[Math.floor(Math.random() * messagePool.length)];
-      
-      setCurrentMessage({ id: Date.now(), text: message });
-      setIsMessageVisible(true);
-
-      setTimeout(() => {
-        setIsMessageVisible(false);
-      }, 4000); // Message visible for 4 seconds
-
-      const minInterval = elapsed > 120000 ? 3500 : 5000;
-      const maxInterval = elapsed > 120000 ? 8000 : 12000;
-      const randomInterval = Math.random() * (maxInterval - minInterval) + minInterval;
-      messageTimeoutId = setTimeout(displayMessage, randomInterval);
-    };
-    
-    // Initial delay before first message
-    const initialDelay = Math.random() * (12000 - 5000) + 5000;
-    messageTimeoutId = setTimeout(displayMessage, initialDelay);
-
-    return () => clearTimeout(messageTimeoutId);
-  }, [startTime, isGameOver, isMobile]);
-
+  }, [auth, db, user]);
 
   // --- DISTRACTION LOGIC ---
 
@@ -270,6 +216,83 @@ export default function Home() {
     setCursorStyle('default');
     setMainText("DON’T CLICK");
   }, []);
+
+  const startGame = useCallback(() => {
+    if (startTime || isGameOver) return;
+    setStartTime(Date.now());
+    setIsGameOver(false);
+    setSurvivalTime(0);
+    setCurrentMessage(null);
+    setIsMessageVisible(false);
+    clearAllDistractions();
+  }, [startTime, isGameOver, clearAllDistractions]);
+
+  useEffect(() => {
+    if (user && !startTime && !isGameOver) {
+      startGame();
+    }
+  }, [user, startTime, isGameOver, startGame]);
+
+  // Tension message logic
+  useEffect(() => {
+    if (!startTime || isGameOver) {
+      if (messageTimeoutId.current) {
+        clearTimeout(messageTimeoutId.current);
+      }
+      return;
+    };
+
+    const displayMessage = async () => {
+      const elapsed = Date.now() - startTime;
+      let gameState = 'initial';
+      if (elapsed > 120000) gameState = 'late';
+      else if (elapsed > 45000) gameState = 'mid';
+
+      try {
+        const input: TensionMessageInput = {
+          gameState,
+          timeElapsed: elapsed,
+        };
+        const response = await generateTensionMessage(input);
+        
+        setCurrentMessage({ id: Date.now(), text: response.message });
+        setIsMessageVisible(true);
+
+        setTimeout(() => {
+          setIsMessageVisible(false);
+        }, 4000); // Message visible for 4 seconds
+
+      } catch (error) {
+        console.error("Failed to generate tension message:", error);
+        let messagePool;
+        const desktopPools = [earlyGameMessages, midGameMessages, lateGameMessages];
+        const mobilePools = [earlyGameMessagesMobile, midGameMessagesMobile, lateGameMessagesMobile];
+        const selectedPools = isMobile ? mobilePools : desktopPools;
+        if (gameState === 'initial') messagePool = selectedPools[0];
+        else if (gameState === 'mid') messagePool = selectedPools[1];
+        else messagePool = selectedPools[2];
+        const message = messagePool[Math.floor(Math.random() * messagePool.length)];
+        setCurrentMessage({ id: Date.now(), text: message });
+        setIsMessageVisible(true);
+        setTimeout(() => { setIsMessageVisible(false); }, 4000);
+      } finally {
+        const minInterval = elapsed > 120000 ? 10000 : 15000;
+        const maxInterval = elapsed > 120000 ? 18000 : 25000;
+        const randomInterval = Math.random() * (maxInterval - minInterval) + minInterval;
+        messageTimeoutId.current = setTimeout(displayMessage, randomInterval);
+      }
+    };
+    
+    const initialDelay = Math.random() * (15000 - 8000) + 8000;
+    messageTimeoutId.current = setTimeout(displayMessage, initialDelay);
+
+    return () => {
+      if (messageTimeoutId.current) {
+        clearTimeout(messageTimeoutId.current);
+      }
+    };
+  }, [startTime, isGameOver, isMobile]);
+
 
   useEffect(() => {
     if (!startTime || isGameOver) {
@@ -294,21 +317,6 @@ export default function Home() {
         addTimeout(setTimeout(() => setMainTextStyle({ transition: 'transform 0.2s, opacity 0.2s' }), 100));
     };
 
-    const fakeToasts = [
-        { title: "New Record!", description: "Player_734 just survived 3m 41s" },
-        { 
-            title: "You've been challenged!", 
-            description: "Beat 2m 11s to win.",
-            action: <ToastAction altText="Accept challenge">Accept</ToastAction>,
-        },
-        { title: "Daily Best Broken", description: "A new champion reigns at 5m 02s." },
-        { variant: "destructive" as const, title: "Player Disconnected", description: "xX_Gamer_Xx gave up." },
-    ];
-    const triggerFakeToast = () => {
-        const randomToast = fakeToasts[Math.floor(Math.random() * fakeToasts.length)];
-        toast(randomToast);
-    };
-
     const cursorTypes = ['wait', 'progress', 'help', 'not-allowed', 'move'];
     const triggerCursorChange = () => {
         const cursor = cursorTypes[Math.floor(Math.random() * cursorTypes.length)];
@@ -323,26 +331,18 @@ export default function Home() {
         addTimeout(setTimeout(() => setMainText("DON’T CLICK"), 750));
     };
 
-    let lastJitter = 0, lastToast = 0, lastCursor = 0, lastDeceptive = 0;
+    let lastJitter = 0, lastCursor = 0, lastDeceptive = 0;
     let animationFrameId: number;
 
     const distractionLoop = () => {
         const now = Date.now();
         const elapsed = now - startTime;
 
-        // Stage 1: Jitter (from 5s)
         if (elapsed > 5000 && now - lastJitter > (3000 + Math.random() * 5000)) {
             triggerTextJitter();
             lastJitter = now;
         }
 
-        // Stage 2: Toasts (from 30s)
-        if (elapsed > 30000 && now - lastToast > (25000 + Math.random() * 25000)) {
-            triggerFakeToast();
-            lastToast = now;
-        }
-        
-        // Stage 3: Aggressive (from 60s)
         if (elapsed > 60000) {
               if (!isMobile && now - lastCursor > (10000 + Math.random() * 15000)) {
                 triggerCursorChange();
@@ -350,7 +350,6 @@ export default function Home() {
             }
         }
         
-        // Stage 4: Deception (from 120s)
         if (elapsed > 120000) {
             if (now - lastDeceptive > (30000 + Math.random() * 30000)) {
                 triggerDeceptiveText();
@@ -379,6 +378,10 @@ export default function Home() {
     const endTime = Date.now();
     const duration = endTime - startTime;
     setSurvivalTime(duration);
+    if (messageTimeoutId.current) {
+        clearTimeout(messageTimeoutId.current);
+    }
+
 
     // Persist data to Firestore
     const todayStr = new Date().toISOString().split('T')[0];
@@ -463,6 +466,15 @@ export default function Home() {
     }
   };
 
+  const resetGame = () => {
+    setIsGameOver(false);
+    setStartTime(null);
+    setUser(null); 
+    if (auth) {
+        signInAnonymously(auth).catch(e => console.error(e));
+    }
+  };
+
   // Click listener
   useEffect(() => {
     if (isGameOver || !startTime) return;
@@ -473,15 +485,15 @@ export default function Home() {
   }, [handleGameOver, isGameOver, startTime]);
 
   return (
-    <main style={{ cursor: cursorStyle }} className={`flex min-h-screen flex-col items-center justify-between p-4 sm:p-8 md:p-12 bg-background text-foreground transition-colors duration-100 ${showFlash ? 'bg-accent' : ''}`}>
-      <div className="flex-grow flex flex-col items-center justify-center w-full">
+    <main style={{ cursor: cursorStyle }} className={`flex h-screen flex-col items-center justify-between p-4 sm:p-8 md:p-12 bg-background text-foreground transition-colors duration-100 ${showFlash ? 'bg-accent' : ''}`}>
+      <div className="flex-grow flex flex-col items-center justify-center w-full overflow-y-auto">
         <div className="flex-grow flex items-center justify-center w-full">
           {isGameOver ? (() => {
             const minutes = Math.floor(survivalTime / 60000);
             const seconds = Math.floor((survivalTime % 60000) / 1000);
             const milliseconds = survivalTime % 1000;
             return (
-                <div className="text-center animate-fade-in">
+                <div className="text-center animate-fade-in my-8">
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-headline font-black mb-4">YOU CLICKED</h1>
                 <p className="text-lg sm:text-xl font-body">You survived for</p>
                 <div className="flex items-baseline justify-center my-4 text-4xl sm:text-6xl md:text-7xl font-headline font-black">
@@ -496,7 +508,7 @@ export default function Home() {
                     <span>{String(milliseconds).padStart(3, '0')}</span>
                     <span className="text-xl sm:text-2xl md:text-3xl font-body font-normal mx-1 sm:mx-2">ms</span>
                 </div>
-                <Button onClick={() => window.location.reload()} className="mt-8" size="lg">
+                <Button onClick={resetGame} className="mt-8" size="lg">
                     Try Again
                 </Button>
 
@@ -556,5 +568,4 @@ export default function Home() {
 }
 
     
-
     
