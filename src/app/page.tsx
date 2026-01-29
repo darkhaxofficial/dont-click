@@ -6,6 +6,7 @@ import { doc, runTransaction, serverTimestamp, collection } from 'firebase/fires
 import { useAuth, useFirestore } from '@/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Button } from '@/components/ui/button';
 
 const tensionMessages = [
   "Are you sure you understand what's at stake?",
@@ -148,7 +149,6 @@ export default function Home() {
     // UI Effects
     setShowFlash(true);
     setTimeout(() => setShowFlash(false), 200);
-    setTimeout(() => window.location.reload(), 3000);
 
   }, [startTime, user, isGameOver, db]);
 
@@ -163,17 +163,32 @@ export default function Home() {
 
   return (
     <main className={`flex min-h-screen flex-col items-center justify-center p-4 bg-background text-foreground transition-colors duration-100 ${showFlash ? 'bg-accent' : ''}`}>
-      {isGameOver ? (
-        <div className="text-center animate-fade-in">
-          <h1 className="text-4xl md:text-6xl font-headline font-black mb-4">YOU CLICKED</h1>
-          <p className="text-xl md:text-3xl font-body">You survived for</p>
-          <p className="text-5xl md:text-8xl font-headline font-black my-4">
-            {survivalTime}
-            <span className="text-2xl md:text-4xl ml-2 font-body font-normal">ms</span>
-          </p>
-          <p className="text-lg md:text-xl font-body text-muted-foreground">A new attempt will begin shortly...</p>
-        </div>
-      ) : (
+      {isGameOver ? (() => {
+        const minutes = Math.floor(survivalTime / 60000);
+        const seconds = Math.floor((survivalTime % 60000) / 1000);
+        const milliseconds = survivalTime % 1000;
+        return (
+            <div className="text-center animate-fade-in">
+            <h1 className="text-4xl md:text-6xl font-headline font-black mb-4">YOU CLICKED</h1>
+            <p className="text-xl md:text-3xl font-body">You survived for</p>
+            <div className="flex items-baseline justify-center my-4 text-5xl md:text-8xl font-headline font-black">
+                {minutes > 0 && (
+                <>
+                    <span>{minutes}</span>
+                    <span className="text-2xl md:text-4xl font-body font-normal mx-2">m</span>
+                </>
+                )}
+                <span>{minutes > 0 ? String(seconds).padStart(2, '0') : seconds}</span>
+                <span className="text-2xl md:text-4xl font-body font-normal mx-2">s</span>
+                <span>{String(milliseconds).padStart(3, '0')}</span>
+                <span className="text-2xl md:text-4xl font-body font-normal mx-2">ms</span>
+            </div>
+            <Button onClick={() => window.location.reload()} className="mt-8" size="lg">
+                Try Again
+            </Button>
+            </div>
+        );
+      })() : (
         <div className="relative flex flex-col items-center justify-center text-center">
            {startTime === null ? (
              <h1 className="text-6xl md:text-9xl font-headline font-black tracking-widest animate-pulse">
