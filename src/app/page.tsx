@@ -12,6 +12,7 @@ import { Leaderboard } from '@/components/Leaderboard';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const earlyGameMessages = [
   "Are you sure you understand what's at stake?",
@@ -26,6 +27,15 @@ const earlyGameMessages = [
   "Are you in control?",
   "There's nothing to see here. Move on.",
   "They said you wouldn't last this long.",
+];
+
+const earlyGameMessagesMobile = [
+    "Easy, isn't it?",
+    "Just a waiting game.",
+    "How's your posture?",
+    "Your screen is so bright.",
+    "Don't smudge the screen.",
+    "Your eyes are getting tired.",
 ];
 
 const midGameMessages = [
@@ -45,6 +55,15 @@ const midGameMessages = [
   "Your mouse is getting heavier.",
 ];
 
+const midGameMessagesMobile = [
+    "Your thumb looks tired.",
+    "You have unread notifications.",
+    "Is your battery getting low?",
+    "This is a poor use of your data plan.",
+    "Your hand is cramping up.",
+    "Just one tap. That's all it takes."
+];
+
 const lateGameMessages = [
   "You've wasted so much time.",
   "This is just a game. Or is it?",
@@ -62,10 +81,20 @@ const lateGameMessages = [
   "Your family misses you.",
 ];
 
+const lateGameMessagesMobile = [
+    "You could be scrolling through social media right now.",
+    "Your friends are wondering where you are.",
+    "Put the phone down. It's not worth it.",
+    "There are better apps for you to be on.",
+    "Let go. It's not worth it.",
+    "Your screen is burning in.",
+];
+
 export default function Home() {
   const auth = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [user, setUser] = useState<User | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [isGameOver, setIsGameOver] = useState(false);
@@ -129,12 +158,16 @@ export default function Home() {
       const elapsed = Date.now() - startTime;
       let messagePool;
 
+      const desktopPools = [earlyGameMessages, midGameMessages, lateGameMessages];
+      const mobilePools = [earlyGameMessagesMobile, midGameMessagesMobile, lateGameMessagesMobile];
+      const selectedPools = isMobile ? mobilePools : desktopPools;
+
       if (elapsed < 45000) { // 0-45s
-        messagePool = earlyGameMessages;
+        messagePool = selectedPools[0];
       } else if (elapsed < 120000) { // 45s - 2min
-        messagePool = midGameMessages;
+        messagePool = selectedPools[1];
       } else { // 2min+
-        messagePool = lateGameMessages;
+        messagePool = selectedPools[2];
       }
 
       const message = messagePool[Math.floor(Math.random() * messagePool.length)];
@@ -157,7 +190,7 @@ export default function Home() {
     messageTimeoutId = setTimeout(displayMessage, initialDelay);
 
     return () => clearTimeout(messageTimeoutId);
-  }, [startTime, isGameOver]);
+  }, [startTime, isGameOver, isMobile]);
 
 
   // --- DISTRACTION LOGIC ---
@@ -243,7 +276,7 @@ export default function Home() {
         
         // Stage 3: Aggressive (from 60s)
         if (elapsed > 60000) {
-              if (now - lastCursor > (10000 + Math.random() * 15000)) {
+              if (!isMobile && now - lastCursor > (10000 + Math.random() * 15000)) {
                 triggerCursorChange();
                 lastCursor = now;
             }
@@ -267,7 +300,7 @@ export default function Home() {
         clearAllDistractions();
     }
 
-  }, [startTime, isGameOver, toast, clearAllDistractions]);
+  }, [startTime, isGameOver, toast, clearAllDistractions, isMobile]);
 
 
   // Game over logic
@@ -428,7 +461,7 @@ export default function Home() {
                   {mainText}
                 </h1>
               )}
-              <div className="absolute top-full mt-8 h-16 w-screen max-w-lg px-4">
+              <div className="absolute top-full mt-8 h-16 w-full max-w-lg px-4">
                 <p className={`text-xl md:text-2xl font-body text-muted-foreground transition-opacity duration-1000 ${isMessageVisible ? 'opacity-100' : 'opacity-0'}`}>
                   {currentMessage?.text}
                 </p>
