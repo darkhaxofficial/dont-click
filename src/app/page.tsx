@@ -175,6 +175,24 @@ export default function Home() {
   const [mainText, setMainText] = useState("DON’T CLICK");
   const distractionTimeouts = useRef<NodeJS.Timeout[]>([]);
   const messageTimeoutId = useRef<NodeJS.Timeout | null>(null);
+  
+  const clearAllDistractions = useCallback(() => {
+    distractionTimeouts.current.forEach(clearTimeout);
+    distractionTimeouts.current = [];
+    setMainTextStyle({});
+    setCursorStyle('default');
+    setMainText("DON’T CLICK");
+  }, []);
+
+  const startGame = useCallback(() => {
+    if (startTime || isGameOver) return;
+    setStartTime(Date.now());
+    setIsGameOver(false);
+    setSurvivalTime(0);
+    setCurrentMessage(null);
+    setIsMessageVisible(false);
+    clearAllDistractions();
+  }, [startTime, isGameOver, clearAllDistractions]);
 
   useEffect(() => {
     if (!auth) return;
@@ -208,24 +226,6 @@ export default function Home() {
   }, [auth, db, user]);
 
   // --- DISTRACTION LOGIC ---
-
-  const clearAllDistractions = useCallback(() => {
-    distractionTimeouts.current.forEach(clearTimeout);
-    distractionTimeouts.current = [];
-    setMainTextStyle({});
-    setCursorStyle('default');
-    setMainText("DON’T CLICK");
-  }, []);
-
-  const startGame = useCallback(() => {
-    if (startTime || isGameOver) return;
-    setStartTime(Date.now());
-    setIsGameOver(false);
-    setSurvivalTime(0);
-    setCurrentMessage(null);
-    setIsMessageVisible(false);
-    clearAllDistractions();
-  }, [startTime, isGameOver, clearAllDistractions]);
 
   useEffect(() => {
     if (user && !startTime && !isGameOver) {
@@ -485,7 +485,18 @@ export default function Home() {
   }, [handleGameOver, isGameOver, startTime]);
 
   return (
-    <main style={{ cursor: cursorStyle }} className={`flex h-screen flex-col items-center justify-between p-4 sm:p-8 md:p-12 bg-background text-foreground transition-colors duration-100 ${showFlash ? 'bg-accent' : ''}`}>
+    <main style={{ cursor: cursorStyle }} className={`flex h-screen flex-col items-center p-4 sm:p-8 md:p-12 bg-background text-foreground transition-colors duration-100 ${showFlash ? 'bg-accent' : ''}`}>
+      <header className="text-center text-muted-foreground text-sm py-4 w-full">
+        <p className="mb-1">Made with ❤️ by DarkHax</p>
+        <a 
+          href="https://www.buymeacoffee.com/darkhax" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="underline hover:text-foreground transition-colors"
+        >
+          Buy me a coffee
+        </a>
+      </header>
       <div className="flex-grow flex flex-col items-center justify-center w-full overflow-y-auto">
         <div className="flex-grow flex items-center justify-center w-full">
           {isGameOver ? (() => {
@@ -551,21 +562,6 @@ export default function Home() {
         </div>
         {isGameOver && <Leaderboard />}
       </div>
-
-      <footer className="text-center text-muted-foreground text-sm py-4 w-full">
-        <p className="mb-1">Made with ❤️ by DarkHax</p>
-        <a 
-          href="https://www.buymeacoffee.com/darkhax" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="underline hover:text-foreground transition-colors"
-        >
-          Buy me a coffee
-        </a>
-      </footer>
     </main>
   );
 }
-
-    
-    
