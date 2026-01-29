@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { type User, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { doc, runTransaction, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { auth, db, collection } from '@/lib/firebase';
 import { generateTensionMessage } from '@/ai/flows/generate-tension-message';
 
 export default function Home() {
