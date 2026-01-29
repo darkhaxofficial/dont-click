@@ -13,20 +13,40 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 
-const tensionMessages = [
+const earlyGameMessages = [
   "Are you sure you understand what's at stake?",
   "Is this really worth it?",
-  "Any second now...",
-  "You're being watched.",
+  "The clock is ticking.",
+  "Patience is a virtue... or is it a trap?",
+  "What are you expecting?",
+  "Just breathe.",
+  "The silence is deafening, isn't it?",
+  "Curiosity is a powerful thing.",
+];
+
+const midGameMessages = [
   "They know.",
+  "You're being watched.",
   "How much longer can you resist?",
+  "You're not alone in here.",
+  "Was that a flicker? Or just your imagination?",
+  "Don't you feel a little... foolish?",
+  "It feels like the walls are closing in, doesn't it?",
+  "Your score is... unimpressive so far.",
+  "Any second now...",
+  "Just a little longer.",
+];
+
+const lateGameMessages = [
+  "You've wasted so much time.",
+  "This is just a game. Or is it?",
+  "Think of all the other things you could be doing right now.",
+  "It's all meaningless in the end.",
+  "Are you in control? Or are you being controlled?",
+  "Just click. It's easier.",
   "It's inevitable.",
   "What are you waiting for?",
-  "Just a little longer.",
-  "The silence is deafening, isn't it?",
-  "Patience is a virtue... or is it a trap?",
   "What do you think happens when you click?",
-  "Curiosity is a powerful thing.",
 ];
 
 export default function Home() {
@@ -94,7 +114,18 @@ export default function Home() {
     let messageTimeoutId: NodeJS.Timeout;
 
     const displayMessage = () => {
-      const message = tensionMessages[Math.floor(Math.random() * tensionMessages.length)];
+      const elapsed = Date.now() - startTime;
+      let messagePool;
+
+      if (elapsed < 45000) { // 0-45s
+        messagePool = earlyGameMessages;
+      } else if (elapsed < 120000) { // 45s - 2min
+        messagePool = midGameMessages;
+      } else { // 2min+
+        messagePool = lateGameMessages;
+      }
+
+      const message = messagePool[Math.floor(Math.random() * messagePool.length)];
       
       setCurrentMessage({ id: Date.now(), text: message });
       setIsMessageVisible(true);
@@ -103,7 +134,9 @@ export default function Home() {
         setIsMessageVisible(false);
       }, 4000); // Message visible for 4 seconds
 
-      const randomInterval = Math.random() * (12000 - 5000) + 5000;
+      const minInterval = elapsed > 120000 ? 4000 : 5000;
+      const maxInterval = elapsed > 120000 ? 10000 : 12000;
+      const randomInterval = Math.random() * (maxInterval - minInterval) + minInterval;
       messageTimeoutId = setTimeout(displayMessage, randomInterval);
     };
     
