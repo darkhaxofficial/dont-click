@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -213,7 +214,7 @@ export default function Home() {
         }
 
         // Stage 2: Toasts (from 30s)
-        if (elapsed > 30000 && now - lastToast > (12000 + Math.random() * 10000)) {
+        if (elapsed > 30000 && now - lastToast > (15000 + Math.random() * 15000)) {
             triggerFakeToast();
             lastToast = now;
         }
