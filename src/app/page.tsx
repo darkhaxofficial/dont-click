@@ -209,7 +209,7 @@ export default function Home() {
           </div>
         )}
       </div>
-      <Leaderboard />
+      {isGameOver && <Leaderboard />}
     </main>
   );
 }
